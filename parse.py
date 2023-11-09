@@ -1,7 +1,8 @@
 import requests
 from bs4 import BeautifulSoup as bs
 import re
-from connection import init_connection, append_data
+from connection2 import init_connection, append_data_rows, append_data_cells, upload_file
+import string
 
 #Define the needed page
 def get_soup(url):
@@ -15,7 +16,6 @@ def get_soup(url):
 
 #find and check the company name (google)
 def find_company_name(soup):
-
     company_tag = soup.find('span', class_='typography_display-s__qOjh6 typography_appearance-default__AAY17 title_displayName__TtDDM')
     return company_tag.get_text(strip=True) if company_tag else ''
 
@@ -29,6 +29,11 @@ def find_reviews(soup):
     reviews_tag = soup.find('p', class_='typography_body-l__KUYFJ typography_appearance-default__AAY17')
     reviews = reviews_tag.text.strip() if reviews_tag else None
     return re.search(r'\d+\,\d{3,}', reviews).group() if re.search(r'\d+\,\d{3,}', reviews) else '0%' 
+
+def uploader():
+    upload_directory = 'api/' 
+    input("Select the API key file in JSON format, press any button to continue..")
+    return upload_file(upload_directory)
 
 #Find the stars container
 def find_stars(soup):
@@ -47,27 +52,42 @@ def find_stars(soup):
     else:
         #The container with reviews is not found
         stars_percentages = ['0%', '0%', '0%', '0%', '0%'] 
-
     return stars_percentages
 
 def main():
-
     URL_TEMPLATE = "https://www.trustpilot.com/review/www.google.com"
     soup = get_soup(URL_TEMPLATE)
-    
-    worksheet = init_connection()
 
-    #append data to google sheets, in the column B
-    append_data(worksheet, find_company_name(soup), "B1")
-    append_data(worksheet, find_rating(soup), "B2")
-    append_data(worksheet, find_reviews(soup), "B3")
+    worksheet = init_connection(upload_file)
+
+    append_data_cells(worksheet, "Company name", "A1")
+    append_data_cells(worksheet, "Average rating", "A2")
+    append_data_cells(worksheet, "Total reviews", "A3")
 
     #put the stars info into the table using for loop
-    count = 4
-
+    stars = 4
+    count = 1
     for i in find_stars(soup):
-        append_data(worksheet, i, "B"+str(count))
+        append_data_cells(worksheet, str(count)+" Stars", "A"+str(stars))
         count+=1
+        stars+=1
+    
+    # Assuming find_stars(soup) returns a list of five elements
+    data_values = [
+        find_company_name(soup), 
+        find_rating(soup),
+        find_reviews(soup), 
+    ] + find_stars(soup)
+
+    # Check each column starting from 'A' to 'Z'
+    for col_letter in string.ascii_uppercase:
+        # Check if the first cell in the column is empty
+        if not worksheet.acell(f'{col_letter}1').value:
+            # If it's empty, this is the column we'll insert data into
+            for index, value in enumerate(data_values, start=1):
+                cell = f'{col_letter}{index}'
+                worksheet.update_acell(cell, value)
+            break  # Data has been inserted, no need to check further columns
 
 if __name__ == "__main__":
     main() 
