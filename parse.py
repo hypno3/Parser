@@ -17,7 +17,7 @@ def get_soup(url):
 #find and check the company name (google)
 def find_company_name(soup):
     company_tag = soup.find('span', class_='typography_display-s__qOjh6 typography_appearance-default__AAY17 title_displayName__TtDDM')
-    return company_tag.get_text(strip=True) if company_tag else ''
+    return company_tag.text.strip() if company_tag else None
 
 #find the average rating of the company
 def find_rating(soup):
@@ -31,7 +31,7 @@ def find_reviews(soup):
     return re.search(r'\d+\,\d{3,}', reviews).group() if re.search(r'\d+\,\d{3,}', reviews) else '0%' 
 
 def uploader():
-    upload_directory = 'api/' 
+    upload_directory = 'api/'
     input("Select the API key file in JSON format, press any button to continue..")
     return upload_file(upload_directory)
 
